@@ -10,16 +10,18 @@ import (
 	"path/filepath"
 )
 
-func WriteFile(fset *token.FileSet, astFile *ast.File) {
+func WriteFile(fset *token.FileSet, astFile *ast.File) error {
 	f, err := os.OpenFile(fset.File(astFile.FileStart).Name(), os.O_RDWR, os.ModeAppend)
 	if err != nil {
-		log.Fatalf("Error creating file: %v", err)
+		return err
 	}
 	defer f.Close()
 
 	if err := format.Node(f, fset, astFile); err != nil {
-		log.Fatalf("Error writing file: %v", err)
+		return err
 	}
+
+	return nil
 }
 
 func FormatFile(fileName string) {

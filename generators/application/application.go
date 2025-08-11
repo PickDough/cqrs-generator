@@ -12,21 +12,21 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-type applicationGenerator struct {
+type ApplicationGenerator struct {
 	CQPackage  string
 	CQType     string
 	ImportPath string
 }
 
-func NewApplicationGenerator(cqPackage string, cqType string, importPath string) *applicationGenerator {
-	return &applicationGenerator{
+func NewApplicationGenerator(cqPackage string, cqType string, importPath string) *ApplicationGenerator {
+	return &ApplicationGenerator{
 		CQPackage:  cqPackage,
 		CQType:     cqType,
 		ImportPath: importPath,
 	}
 }
 
-func (a *applicationGenerator) Generate(fset *token.FileSet, applicationPackage iter.Seq[*ast.File]) error {
+func (a *ApplicationGenerator) Generate(fset *token.FileSet, applicationPackage iter.Seq[*ast.File]) error {
 	astFile := a.findFileToInsert(applicationPackage)
 	if astFile == nil {
 		return fmt.Errorf("couldn't find %s location inside application directory", a.CQType)
@@ -46,13 +46,16 @@ func (a *applicationGenerator) Generate(fset *token.FileSet, applicationPackage 
 		return err
 	}
 
-	utils.WriteFile(fset, astFile)
+	err = utils.WriteFile(fset, astFile)
+	if err != nil {
+		return err
+	}
 	utils.FormatFile(fset.File(astFile.FileStart).Name())
 
 	return nil
 }
 
-func (a *applicationGenerator) insertParameter(inspec *inspector.Inspector) {
+func (a *ApplicationGenerator) insertParameter(inspec *inspector.Inspector) {
 	for fd := range inspec.Root().Preorder((*ast.FuncDecl)(nil)) {
 		funcDecl := fd.Node().(*ast.FuncDecl)
 		if funcDecl.Name.Name != "New" {
@@ -76,10 +79,10 @@ func (a *applicationGenerator) insertParameter(inspec *inspector.Inspector) {
 	}
 }
 
-func (a *applicationGenerator) insertField(inspec *inspector.Inspector) {
+func (a *ApplicationGenerator) insertField(inspec *inspector.Inspector) {
 	for fd := range inspec.Root().Preorder((*ast.CompositeLit)(nil)) {
 		compositeLit := fd.Node().(*ast.CompositeLit)
-		if ident, ok := compositeLit.Type.(*ast.Ident); ok && ident.Name == utils.SubStringCQ[a.CQType].Plural {
+		if ident, ok := compositeLit.Type.(*ast.Ident); ok && ident.Name == utils.CqMap[a.CQType].Plural {
 			newField := &ast.KeyValueExpr{
 				Key: &ast.Ident{
 					NamePos: compositeLit.Rbrace,
@@ -94,7 +97,7 @@ func (a *applicationGenerator) insertField(inspec *inspector.Inspector) {
 	}
 }
 
-func (a *applicationGenerator) insertFunc(inspec *inspector.Inspector, astFile *ast.File) error {
+func (a *ApplicationGenerator) insertFunc(inspec *inspector.Inspector, astFile *ast.File) error {
 	newFunc := a.findNewFunc(inspec)
 	if newFunc == nil {
 		return fmt.Errorf("couldn't find New function in %s", astFile.Name.Name)
@@ -124,7 +127,7 @@ func (a *applicationGenerator) insertFunc(inspec *inspector.Inspector, astFile *
 					},
 					{
 						Names: []*ast.Ident{
-							ast.NewIdent(utils.SubStringCQ[a.CQType].Singular),
+							ast.NewIdent(utils.CqMap[a.CQType].Singular),
 						},
 						Type: ast.NewIdent(fmt.Sprintf("%s.%s", a.CQPackage, a.CQType)),
 					},
@@ -143,10 +146,10 @@ func (a *applicationGenerator) insertFunc(inspec *inspector.Inspector, astFile *
 				&ast.ReturnStmt{
 					Results: []ast.Expr{
 						&ast.CallExpr{
-							Fun: ast.NewIdent(fmt.Sprintf("app.%s.%s.Execute", utils.SubStringCQ[a.CQType].Plural, a.CQPackage)),
+							Fun: ast.NewIdent(fmt.Sprintf("app.%s.%s.Execute", utils.CqMap[a.CQType].Plural, a.CQPackage)),
 							Args: []ast.Expr{
 								ast.NewIdent("ctx"),
-								ast.NewIdent(utils.SubStringCQ[a.CQType].Singular),
+								ast.NewIdent(utils.CqMap[a.CQType].Singular),
 							},
 						},
 					},
@@ -169,7 +172,7 @@ func (a *applicationGenerator) insertFunc(inspec *inspector.Inspector, astFile *
 	return nil
 }
 
-func (a *applicationGenerator) findFileToInsert(applicationPackage iter.Seq[*ast.File]) *ast.File {
+func (a *ApplicationGenerator) findFileToInsert(applicationPackage iter.Seq[*ast.File]) *ast.File {
 	for file := range applicationPackage {
 		inspec := inspector.New([]*ast.File{file})
 
@@ -182,7 +185,7 @@ func (a *applicationGenerator) findFileToInsert(applicationPackage iter.Seq[*ast
 	return nil
 }
 
-func (a *applicationGenerator) findNewFunc(inspec *inspector.Inspector) *ast.FuncDecl {
+func (a *ApplicationGenerator) findNewFunc(inspec *inspector.Inspector) *ast.FuncDecl {
 	for fd := range inspec.Root().Preorder((*ast.FuncDecl)(nil)) {
 		funcDecl := fd.Node().(*ast.FuncDecl)
 		if funcDecl.Name.Name != "New" {
@@ -195,7 +198,7 @@ func (a *applicationGenerator) findNewFunc(inspec *inspector.Inspector) *ast.Fun
 	return nil
 }
 
-func (a *applicationGenerator) hasParameter(inspec *inspector.Inspector) bool {
+func (a *ApplicationGenerator) hasParameter(inspec *inspector.Inspector) bool {
 	for fd := range inspec.Root().Preorder((*ast.FuncDecl)(nil)) {
 		funcDecl := fd.Node().(*ast.FuncDecl)
 		if funcDecl.Name.Name != "New" {

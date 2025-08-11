@@ -12,7 +12,7 @@ type PkgNames struct {
 	Singular string
 }
 
-var SubStringCQ = map[string]PkgNames{
+var CqMap = map[string]PkgNames{
 	"Command": {
 		Plural:   "commands",
 		Singular: "command",

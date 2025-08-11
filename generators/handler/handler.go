@@ -9,17 +9,17 @@ import (
 	"gitlab.com/social-tech/teams/bond-team/cqrs-generator/utils"
 )
 
-type handlerGenerator struct {
+type HandlerGenerator struct {
 	CQPackage string
 	CQType    string
 	DirPath   string
 }
 
-func New(CQPackage string, CQType string, dirPath string) *handlerGenerator {
-	return &handlerGenerator{CQPackage: CQPackage, CQType: CQType, DirPath: dirPath}
+func New(CQPackage string, CQType string, dirPath string) *HandlerGenerator {
+	return &HandlerGenerator{CQPackage: CQPackage, CQType: CQType, DirPath: dirPath}
 }
 
-func (h *handlerGenerator) Generate() error {
+func (h *HandlerGenerator) Generate() error {
 	filePath := h.DirPath + "/handler.go"
 	if _, err := os.Stat(filePath); err == nil || !os.IsNotExist(err) {
 		log.Printf("File %s already exists, skipping generation\n", filePath)
@@ -37,7 +37,7 @@ func (h *handlerGenerator) Generate() error {
 	return nil
 }
 
-func (h *handlerGenerator) writeFile(filePath string, src string) error {
+func (h *HandlerGenerator) writeFile(filePath string, src string) error {
 	fh, err := os.Create(filePath)
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (h *handlerGenerator) writeFile(filePath string, src string) error {
 	return nil
 }
 
-func (h *handlerGenerator) generateFile() *jen.File {
+func (h *HandlerGenerator) generateFile() *jen.File {
 	f := jen.NewFile(h.CQPackage)
 	f.Type().Id("handler").Struct()
 	f.Func().Id("New").
@@ -63,7 +63,7 @@ func (h *handlerGenerator) generateFile() *jen.File {
 		Block(jen.Return(jen.Id("&handler{}")))
 	execFunc := f.Func().Params(jen.Id("h").Id("*handler")).
 		Id("Execute").
-		Params(jen.Id("ctx").Qual("context", "Context"), jen.Id(utils.SubStringCQ[h.CQType].Singular).Id(h.CQType))
+		Params(jen.Id("ctx").Qual("context", "Context"), jen.Id(utils.CqMap[h.CQType].Singular).Id(h.CQType))
 	if h.CQType == "Query" {
 		execFunc.Params(jen.Id("Result"), jen.Id("error"))
 	} else {

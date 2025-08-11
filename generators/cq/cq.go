@@ -13,21 +13,21 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-type cqGenerator struct {
+type CqGenerator struct {
 	CQPackage  string
 	CQType     string
 	ImportPath string
 }
 
-func NewCQGenerator(cqPackage string, cqType string, importPath string) *cqGenerator {
-	return &cqGenerator{
+func NewCQGenerator(cqPackage string, cqType string, importPath string) *CqGenerator {
+	return &CqGenerator{
 		CQPackage:  cqPackage,
 		CQType:     cqType,
 		ImportPath: importPath,
 	}
 }
 
-func (cq *cqGenerator) Generate(fset *token.FileSet, applicationPackage iter.Seq[*ast.File]) error {
+func (cq *CqGenerator) Generate(fset *token.FileSet, applicationPackage iter.Seq[*ast.File]) error {
 	astFile := cq.findFileToInsert(applicationPackage)
 	if astFile == nil {
 		return fmt.Errorf("couldn't find %s location inside application directory", cq.CQType)
@@ -46,18 +46,21 @@ func (cq *cqGenerator) Generate(fset *token.FileSet, applicationPackage iter.Seq
 	cq.insertInterface(astFile)
 	astutil.AddImport(fset, astFile, cq.ImportPath)
 
-	utils.WriteFile(fset, astFile)
+	err := utils.WriteFile(fset, astFile)
+	if err != nil {
+		return err
+	}
 	utils.FormatFile(fset.File(astFile.FileStart).Name())
 
 	return nil
 }
 
-func (cq *cqGenerator) findFileToInsert(applicationPackage iter.Seq[*ast.File]) *ast.File {
+func (cq *CqGenerator) findFileToInsert(applicationPackage iter.Seq[*ast.File]) *ast.File {
 	for file := range applicationPackage {
 		inspec := inspector.New([]*ast.File{file})
 		for ts := range inspec.Root().Preorder((*ast.TypeSpec)(nil)) {
 			typeSpec := ts.Node().(*ast.TypeSpec)
-			if strings.Contains(strings.ToLower(typeSpec.Name.Name), utils.SubStringCQ[cq.CQType].Plural) {
+			if strings.Contains(strings.ToLower(typeSpec.Name.Name), utils.CqMap[cq.CQType].Plural) {
 				return file
 			}
 		}
@@ -66,10 +69,10 @@ func (cq *cqGenerator) findFileToInsert(applicationPackage iter.Seq[*ast.File]) 
 	return nil
 }
 
-func (cq *cqGenerator) insertField(node *ast.File) {
+func (cq *CqGenerator) insertField(node *ast.File) {
 	ast.Inspect(node, func(n ast.Node) bool {
 		typeSpec, ok := n.(*ast.TypeSpec)
-		if !ok || !strings.Contains(strings.ToLower(typeSpec.Name.Name), utils.SubStringCQ[cq.CQType].Plural) {
+		if !ok || !strings.Contains(strings.ToLower(typeSpec.Name.Name), utils.CqMap[cq.CQType].Plural) {
 			return true
 		}
 
@@ -89,7 +92,7 @@ func (cq *cqGenerator) insertField(node *ast.File) {
 	})
 }
 
-func (cq *cqGenerator) insertInterface(node *ast.File) {
+func (cq *CqGenerator) insertInterface(node *ast.File) {
 	// Build the interface type directly
 	methodFields := []*ast.Field{
 		{
@@ -102,7 +105,7 @@ func (cq *cqGenerator) insertInterface(node *ast.File) {
 							Type:  ast.NewIdent("context.Context"),
 						},
 						{
-							Names: []*ast.Ident{ast.NewIdent(utils.SubStringCQ[cq.CQType].Singular)},
+							Names: []*ast.Ident{ast.NewIdent(utils.CqMap[cq.CQType].Singular)},
 							Type:  ast.NewIdent(fmt.Sprintf("%s.%s", cq.CQPackage, cq.CQType)),
 						},
 					},
