@@ -1,4 +1,4 @@
-module gitlab.com/social-tech/teams/bond-team/cqrs-generator
+module github.com/PickDough/cqrs-generator
 
 go 1.24.3
 
