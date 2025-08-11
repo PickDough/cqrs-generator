@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/PickDough/cqrs-generator/utils"
 	"github.com/dave/jennifer/jen"
-	"gitlab.com/social-tech/teams/bond-team/cqrs-generator/utils"
 )
 
 type HandlerGenerator struct {

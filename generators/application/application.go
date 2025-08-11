@@ -7,7 +7,7 @@ import (
 	"iter"
 	"log"
 
-	"gitlab.com/social-tech/teams/bond-team/cqrs-generator/utils"
+	"github.com/PickDough/cqrs-generator/utils"
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/ast/inspector"
 )

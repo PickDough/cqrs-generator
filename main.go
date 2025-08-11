@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/social-tech/teams/bond-team/cqrs-generator/generators/application"
-	"gitlab.com/social-tech/teams/bond-team/cqrs-generator/generators/cq"
-	"gitlab.com/social-tech/teams/bond-team/cqrs-generator/generators/handler"
-	"gitlab.com/social-tech/teams/bond-team/cqrs-generator/utils"
+	"github.com/PickDough/cqrs-generator/generators/application"
+	"github.com/PickDough/cqrs-generator/generators/cq"
+	"github.com/PickDough/cqrs-generator/generators/handler"
+	"github.com/PickDough/cqrs-generator/utils"
 	//. "github.com/dave/jennifer/jen"
 )
 
