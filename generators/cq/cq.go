@@ -138,17 +138,59 @@ func (cq *CqGenerator) insertInterface(node *ast.File) {
 		Type: interfaceType,
 	}
 
+	var gDecl *ast.GenDecl
+	var index int
 	// Insert into the first type declaration group, or create a new one
+OUTER:
 	for _, decl := range node.Decls {
 		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.TYPE {
-			genDecl.Specs = append(genDecl.Specs, interfaceSpec)
-			return
+			gDecl = genDecl
+			for i, gD := range genDecl.Specs {
+				structSpec, ok := gD.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
+				if !strings.Contains(structSpec.Name.Name, utils.CqMap[cq.CQType].Plural) {
+					continue
+				}
+
+				index = i + 1
+				break OUTER
+			}
 		}
 	}
+	var lastPrevIndex int
+	log.Printf("index: %d", index)
+	if index > 1 {
+		for i, gD := range gDecl.Specs[index:] {
+			structSpec, ok := gD.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
+			_, ok = structSpec.Type.(*ast.InterfaceType)
+			if ok {
+				continue
+			}
 
-	typeDecl := &ast.GenDecl{
-		Tok:   token.TYPE,
-		Specs: []ast.Spec{interfaceSpec},
+			lastPrevIndex = i + index
+			break
+		}
+		log.Printf("lastPrevIndex: %d", lastPrevIndex)
+		specs := []ast.Spec{}
+		set := false
+		for i := 0; i < len(gDecl.Specs); i++ {
+			if i == lastPrevIndex && !set {
+				specs = append(specs, interfaceSpec)
+				i--
+				set = true
+			} else {
+				specs = append(specs, gDecl.Specs[i])
+			}
+		}
+		gDecl.Specs = specs
+	} else {
+		fmt.Printf("else")
+		gDecl.Specs = append(gDecl.Specs, interfaceSpec)
 	}
-	node.Decls = append(node.Decls, typeDecl)
+
 }

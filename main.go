@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/PickDough/cqrs-generator/generators/application"
+	"github.com/PickDough/cqrs-generator/generators/bootstrap"
 	"github.com/PickDough/cqrs-generator/generators/cq"
 	"github.com/PickDough/cqrs-generator/generators/handler"
 	"github.com/PickDough/cqrs-generator/utils"
@@ -63,6 +64,17 @@ func main() {
 	if err := handlerGenerator.Generate(); err != nil {
 		logFatalf("error generating handler: %s", err.Error())
 	}
+
+	bootstrapFile := filepath.Join(filepath.Dir(applicationDir), "bootstrap", "bootstrap.go")
+	bootstrapGenerator := bootstrap.NewBootstrapGenerator(pkg, cqType, importPath)
+	parseBootstrapFile, err := parser.ParseFile(fset, bootstrapFile, nil, parser.ParseComments)
+	if err != nil {
+		logFatalf("error parsing bootstrap file: %s", err.Error())
+	}
+	if err := bootstrapGenerator.Generate(fset, parseBootstrapFile); err != nil {
+		logFatalf("error generating bootstrap: %s", err.Error())
+	}
+
 }
 
 func logFatalf(format string, args ...interface{}) {
